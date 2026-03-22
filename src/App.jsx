@@ -1,36 +1,54 @@
-import { Color } from 'cesium';
-import 'cesium/Build/Cesium/Widgets/widgets.css';
-import { PointGraphics } from 'resium';
-import { Viewer, Entity } from 'resium';
+import { darkTheme } from './theme/darkTheme';
 import { useSatelliteTracker } from './hooks/useSatelliteTracker';
-import { useEffect, useRef } from 'react';
+import SatelliteMap from './components/map/SatelliteMap';
+import InfoPanel from './components/UI/InfoPanel';
+import { Box, CssBaseline, ThemeProvider } from '@mui/material';
+import Sidebar from './components/UI/Sidebar';
 
 function App() {
-  const { position, error } = useSatelliteTracker('stations', 'ISS (ZARYA)');
-  const viewerRef = useRef(null);
-
-  useEffect(() => {
-    const viewer = viewerRef.current?.cesiumElement;
-    if (viewer && viewer.infoBox) {
-      viewer.infoBox.frame.sandbox =
-        'allow-same-origin allow-top-navigation allow-pointer-lock allow-popups allow-forms allow-scripts';
-    }
-  }, []);
-
-  if (error)
-    return (
-      <div className='error-overlay'>Bağlantı Hatası: {error.message}</div>
-    );
+  const { position, data, error } = useSatelliteTracker(
+    'stations',
+    'ISS (ZARYA)',
+  );
 
   return (
-    <Viewer full ref={viewerRef}>
-      {position && (
-        <Entity position={position} name='ISS (ZARYA)'>
-          <PointGraphics pixelSize={15} color={Color.LIME} />
-        </Entity>
-      )}
-    </Viewer>
+    <ThemeProvider theme={darkTheme}>
+      <CssBaseline />
+      {/* 1. Ana Kapsayıcı: Sidebar ve Harita yan yana gelsin diye 'flex' */}
+      <Box
+        sx={{
+          display: 'flex',
+          width: '100vw',
+          height: '100vh',
+          overflow: 'hidden',
+        }}
+      >
+        {/* 2. Sol Menü (Drawer) */}
+        <Sidebar selectedGroup='stations' onGroupChange={() => {}} />
+
+        {/* 3. Harita ve Overlay Alanı */}
+        <Box
+          component='main'
+          sx={{
+            flexGrow: 1,
+            position: 'relative', // İçindeki InfoPanel'in 'absolute' olması için şart
+            height: '100vh',
+          }}
+        >
+          {/* Resium Viewer: Arka planı kaplaması için */}
+          <SatelliteMap position={position} name='ISS (ZARYA)' />
+
+          {/* InfoPanel: En üstte görünmesi için yüksek zIndex */}
+          {!error && data && (
+            <InfoPanel
+              name='ISS (ZARYA)'
+              data={data}
+              sx={{ zIndex: 1200 }} // MUI Drawer'dan daha üstte veya benzer seviyede
+            />
+          )}
+        </Box>
+      </Box>
+    </ThemeProvider>
   );
 }
-
 export default App;
